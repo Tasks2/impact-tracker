@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  //output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // The `url` property was removed in Prisma 7. Move connection URLs to prisma.config.ts
+  // and pass an `adapter` or `accelerateUrl` to the PrismaClient constructor as needed.
+}
+
+enum UserRole{
+  ADMIN
+  FIELD_WORKER
+}
+
+enum ProjectStatus{
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum Gender{
+  MALE
+  FEMALE
+}
+
+enum RecordStatus{
+  ACTIVE
+  INACTIVE
+}
+
+enum AssignmentStatus{
+  ACTIVE
+  COMPLETED
+  REMOVED
+}
+
+
+model User {
+  id  String  @id @default(uuid())
+  firstName String 
+  lastName String
+  email String @unique
+  passwordHash String
+  role UserRole
+  status RecordStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedProjects ProjectAssignment[] @relation("AssignedBy")
+  assignedToProjects ProjectAssignment[] @relation("AssignedUser")
+}
+
+model Project {
+  id String @id @default(uuid())
+  name String @unique
+  description String?
+  startDate DateTime
+  endDate DateTime?
+  status ProjectStatus @default(PLANNED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments ProjectAssignment[]
+  beneficiaries BeneficiaryProject[]
+  volunteers VolunteerProject[]
+}
+
+model Beneficiary{
+  id String @id @default(uuid())
+  firstName String
+  lastName String
+  phone String @unique
+  email String?
+  dateOfBirth DateTime?
+  gender Gender?
+  location String?
+  registrationDate DateTime @default(now())
+  status RecordStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects BeneficiaryProject[]
+}
+
+model Volunteer{
+  id String @id @default(uuid())
+  firstName String
+  lastName String
+  phone String @unique
+  email String?
+  skills String?
+  availability String?
+  status RecordStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects VolunteerProject[]
+}
+
+model ProjectAssignment {
+  id String @id @default(uuid())
+  userId String
+  projectId String
+  assignedBy String
+  assignedAt DateTime @default(now())
+  status AssignmentStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("AssignedUser", fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+  assignedByUser User @relation("AssignedBy", fields: [assignedBy], references: [id])
+
+
+  @@unique([userId, projectId])
+}
+
+model BeneficiaryProject {
+  beneficiaryId String
+  projectId String
+  enrolledAt DateTime @default(now())
+  status AssignmentStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@id ([beneficiaryId, projectId])
+}
+
+model VolunteerProject {
+  volunteerId String
+  projectId String
+  joinedAt DateTime @default(now())
+  status AssignmentStatus @default(ACTIVE)
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@id ([volunteerId, projectId])
+}
