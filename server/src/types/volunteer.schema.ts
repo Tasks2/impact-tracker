@@ -6,7 +6,8 @@ export const createVolunteerSchema = z.object({
  phone: z.string().min(10).max(15),
  email: z.string().email().optional().nullable(),
  skills: z.string().optional().nullable(),
- availability: z.string().optional().nullable()
+ availability: z.string().optional().nullable(),
+ status: z.enum(['ACTIVE', 'INACTIVE']).optional()
 });
 
 export const updateVolunteerSchema = createVolunteerSchema.partial();

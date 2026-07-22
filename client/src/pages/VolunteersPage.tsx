@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-//import { getVolunteers, saveVolunteer, deleteVolunteer, getProjects } from '@/lib/store';
-import { Volunteer, Project } from '@/types';
+import { getVolunteers, saveVolunteer, deleteVolunteer } from '@/lib/volunteer-api';
+import { Volunteer } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,52 +13,62 @@ import { Plus, Pencil, Trash2, Clock } from 'lucide-react';
 export default function VolunteersPage() {
   const [refresh, setRefresh] = useState(0);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Volunteer | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [hoursDialogVol, setHoursDialogVol] = useState<Volunteer | null>(null);
-  const [addHours, setAddHours] = useState('');
-
+ 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([getVolunteers(), getProjects()]).then(([v, p]) => {
-      setVolunteers(v);
-      setProjects(p);
-      setLoading(false);
-    });
-  }, [refresh]);
+  setLoading(true);
 
-  const projectName = (id: string) => projects.find(p => p.id === id)?.name || '—';
+  getVolunteers()
+    .then((data) => setVolunteers(data))
+    .finally(() => setLoading(false));
+}, [refresh]);
 
-  const emptyVolunteer: Volunteer = {
-    id: '', name: '', contact: '', assignedProjectId: '', role: '', hoursLogged: 0,
-    createdAt: new Date().toISOString(),
-  };
+ 
+const emptyVolunteer: Volunteer = {
+  id: '',
+  firstName: '',
+  lastName: '',
+  phone: '',
+  email: null,
+  skills: '',
+  availability: '',
+  status: 'ACTIVE',
+  createdAt: '',
+  updatedAt: '',
+};
 
-  const openNew = () => { setEditing({ ...emptyVolunteer, id: crypto.randomUUID() }); setDialogOpen(true); };
+  const openNew = () => { setEditing({ ...emptyVolunteer }); setDialogOpen(true); };
   const openEdit = (v: Volunteer) => { setEditing({ ...v }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!editing) return;
-    await saveVolunteer(editing);
+  if (!editing) return;
+
+  try {
+    const saved = await saveVolunteer(editing);
+
+    setVolunteers((prev) =>
+      prev.map((v) =>
+        v.id === saved.id ? saved : v
+      )
+    );
+
     setDialogOpen(false);
-    setRefresh(r => r + 1);
-  };
+    setEditing(null);
+    setRefresh((r) => r + 1);
+  } catch (error) {
+    console.error('Failed to save volunteer:', error);
+    alert('Save failed. Please try again.');
+  }
+};
 
   const handleDelete = async (id: string) => {
     await deleteVolunteer(id);
     setRefresh(r => r + 1);
   };
 
-  const handleLogHours = async () => {
-    if (!hoursDialogVol || !addHours) return;
-    const updated = { ...hoursDialogVol, hoursLogged: hoursDialogVol.hoursLogged + Number(addHours) };
-    await saveVolunteer(updated);
-    setHoursDialogVol(updated);
-    setAddHours('');
-    setRefresh(r => r + 1);
-  };
+ 
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading volunteers…</div>;
@@ -78,24 +88,23 @@ export default function VolunteersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Contact</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead className="hidden md:table-cell">Role</TableHead>
-                  <TableHead>Hours</TableHead>
+                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                  <TableHead className="hidden sm:table-cell">Skills</TableHead>
+                  <TableHead className="hidden md:table-cell">Availability</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {volunteers.map(v => (
                   <TableRow key={v.id}>
-                    <TableCell className="font-medium">{v.name}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">{v.contact}</TableCell>
-                    <TableCell className="text-muted-foreground">{projectName(v.assignedProjectId)}</TableCell>
-                    <TableCell className="hidden md:table-cell">{v.role}</TableCell>
-                    <TableCell className="font-semibold">{v.hoursLogged}h</TableCell>
+                    <TableCell className="font-medium">{v.firstName} {v.lastName}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">{v.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">{v.skills || '—'}</TableCell>
+                    <TableCell className="hidden md:table-cell">{v.availability || '—'}</TableCell>
+                    <TableCell className="font-semibold">{v.status}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setHoursDialogVol(v)} title="Log hours"><Clock className="h-4 w-4 text-primary" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(v)}><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => handleDelete(v.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
@@ -114,17 +123,25 @@ export default function VolunteersPage() {
       {/* Create/Edit */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle className="font-display">{editing?.name ? 'Edit Volunteer' : 'Add Volunteer'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display">{editing?.id ? 'Edit Volunteer' : 'Add Volunteer'}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Name</Label><Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Contact</Label><Input value={editing.contact} onChange={e => setEditing({ ...editing, contact: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Role</Label><Input value={editing.role} onChange={e => setEditing({ ...editing, role: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Assigned Project</Label>
-                <Select value={editing.assignedProjectId} onValueChange={v => setEditing({ ...editing, assignedProjectId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+              <div className="space-y-2"><Label>First Name</Label><Input value={editing.firstName} onChange={e => setEditing({ ...editing, firstName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Last Name</Label><Input value={editing.lastName} onChange={e => setEditing({ ...editing, lastName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editing.phone} onChange={e => setEditing({ ...editing, phone: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Email</Label><Input value={editing.email  ?? ''}
+               onChange={e => setEditing({ ...editing, email: e.target.value || null })} /></div>
+              <div className="space-y-2"><Label>Skills</Label><Input value={editing.skills  ?? ''} 
+              onChange={e => setEditing({ ...editing, skills: e.target.value || null })} /></div>
+              <div className="space-y-2"><Label>Availability</Label><Input value={editing.availability  ?? ''} 
+              onChange={e => setEditing({ ...editing, availability: e.target.value || null })} /></div>
+              <div className="space-y-2"><Label>Status</Label>
+                <Select value={editing.status} 
+                onValueChange={v => setEditing({ ...editing, status: v as 'ACTIVE' | 'INACTIVE'})}>
+                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                   <SelectContent>
-                    {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -134,17 +151,7 @@ export default function VolunteersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Log Hours */}
-      <Dialog open={!!hoursDialogVol} onOpenChange={o => { if (!o) setHoursDialogVol(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="font-display">Log Hours — {hoursDialogVol?.name}</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Total logged: <strong>{hoursDialogVol?.hoursLogged}h</strong></p>
-          <div className="flex gap-2">
-            <Input type="number" placeholder="Hours to add" value={addHours} onChange={e => setAddHours(e.target.value)} />
-            <Button onClick={handleLogHours}>Log</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      
     </div>
   );
 }

@@ -41,14 +41,19 @@ export interface Beneficiary {
   updatedAt: string;
 }
 
+export type RecordStatus = 'ACTIVE' | 'INACTIVE';
+
 export interface Volunteer {
   id: string;
-  name: string;
-  contact: string;
-  assignedProjectId: string;
-  role: string;
-  hoursLogged: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string | null;
+  skills: string | null;
+  availability: string | null;
+  status: RecordStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface ActivityItem {

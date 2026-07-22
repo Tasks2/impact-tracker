@@ -63,6 +63,7 @@ export async function updateVolunteer(
       ...(data.firstName && { firstName: data.firstName }),
       ...(data.lastName && { lastName: data.lastName }),
       ...(data.phone && { phone: data.phone }),
+      ...(data.status && { status: data.status }),
       ...(data.email !== undefined && { email: data.email }),
       ...(data.skills !== undefined && {
         skills: data.skills
