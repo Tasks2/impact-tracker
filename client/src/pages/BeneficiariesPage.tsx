@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getBeneficiaries, saveBeneficiary, deleteBeneficiary } from '@/lib/beneficiary-api';
-import { getProjects } from '@/lib/project-api';
-import { Beneficiary, Project } from '@/types';
+import { Beneficiary } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { DialogDescription } from '@radix-ui/react-dialog';
 
 export default function BeneficiariesPage() {
   const [refresh, setRefresh] = useState(0);
@@ -49,29 +49,72 @@ const filtered = beneficiaries.filter((b) => {
   );
 });
 
-  const emptyBeneficiary: Beneficiary = {
-    id: '', 
-    firstName: '', 
-    lastName: '',
-    phone: '',
-    email: '',
-    gender: 'MALE',  
-    location: '', 
-    status: 'ACTIVE',
-    dateOfBirth: new Date().toISOString().split('T')[0],
-  };
+const emptyBeneficiary: Beneficiary = {
+  id: '',
+  firstName: '',
+  lastName: '',
+  phone: '',
+  email: '',
+  dateOfBirth: '',
+  gender: 'MALE',
+  location: '',
+  //registrationDate: new Date().toISOString(),
+  status: 'ACTIVE',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};;
 
   //Ask about empty beneficiary
-  const openNew = () => { setEditing({ ...emptyBeneficiary, id: crypto.randomUUID() }); setDialogOpen(true); };
+  //const openNew = () => { setEditing({ ...emptyBeneficiary, id: crypto.randomUUID() }); setDialogOpen(true); };
+  const openNew = () => {
+  setEditing({ ...emptyBeneficiary });
+  setDialogOpen(true);
+};
   
-  const openEdit = (b: Beneficiary) => { setEditing({ ...b }); setDialogOpen(true); };
+  const openEdit = (b: Beneficiary) => { 
+    setEditing({
+       ...b,
+       dateOfBirth: b.dateOfBirth
+      ? b.dateOfBirth.slice(0, 10)
+      : '',
+      }); setDialogOpen(true); };
 
-  const handleSave = async () => {
-    if (!editing) return;
-    await saveBeneficiary(editing);
+//   const handleSave = async () => {
+//   if (!editing) return;
+
+//   try {
+//     await saveBeneficiary(editing);
+
+//     setDialogOpen(false);
+//     setRefresh((r) => r + 1);
+//   } catch (error) {
+//     console.error('Failed to save beneficiary:', error);
+//     alert('Save failed. Please try again.');
+//   }
+// };
+const handleSave = async () => {
+  if (!editing) return;
+
+  try {
+    const saved = await saveBeneficiary(editing);
+
+    // Update the table immediately with the server response
+    setBeneficiaries((prev) =>
+      prev.map((b) =>
+        b.id === saved.id ? saved : b
+      )
+    );
+
     setDialogOpen(false);
-    setRefresh(r => r + 1);
-  };
+    setEditing(null);
+
+    // Optional: keep refresh for a full sync
+    setRefresh((r) => r + 1);
+  } catch (error) {
+    console.error('Failed to save beneficiary:', error);
+    alert('Save failed. Please try again.');
+  }
+};
 
   const handleDelete = async (id: string) => {
     await deleteBeneficiary(id);
@@ -96,13 +139,6 @@ const filtered = beneficiaries.filter((b) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search name or location…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {/* <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Filter by project" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Projects</SelectItem>
-            {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-          </SelectContent>
-        </Select> */}
       </div>
 
       <Card>
@@ -111,22 +147,22 @@ const filtered = beneficiaries.filter((b) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Full Name</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Gender</TableHead>
-                  <TableHead className="hidden sm:table-cell">Age</TableHead>
+                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead>Location</TableHead>
-                  <TableHead className="hidden md:table-cell">Project</TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(b => (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{b.fullName}</TableCell>
+                    <TableCell className="font-medium"> {b.firstName} {b.lastName}</TableCell>
                     <TableCell className="hidden sm:table-cell">{b.gender}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{b.age}</TableCell>
-                    <TableCell>{b.location}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">{projectName(b.linkedProjectId)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{b.phone }</TableCell>
+                    <TableCell>{b.location || '—'}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">{b.status}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => openEdit(b)}><Pencil className="h-4 w-4" /></Button>
@@ -146,36 +182,41 @@ const filtered = beneficiaries.filter((b) => {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="font-display">{editing?.id && beneficiaries.find(b => b.id === editing.id) ? 'Edit Beneficiary' : 'Add Beneficiary'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display">{editing?.id && beneficiaries.find(b => b.id === editing.id) ? 'Edit Beneficiary' : 'Add Beneficiary'}</DialogTitle>
+            <DialogDescription>Create or update beneficiary details </DialogDescription>
+          </DialogHeader>
           {editing && (
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Full Name</Label><Input value={editing.fullName} onChange={e => setEditing({ ...editing, fullName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>First Name</Label><Input value={editing.firstName} onChange={e => setEditing({ ...editing, firstName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Last Name</Label><Input value={editing.lastName} onChange={e => setEditing({ ...editing, lastName: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Gender</Label>
                   <Select value={editing.gender} onValueChange={v => setEditing({ ...editing, gender: v as Beneficiary['gender'] })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="MALE">Male</SelectItem>
+                      <SelectItem value="FEMALE">Female</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Age</Label><Input type="number" value={editing.age} onChange={e => setEditing({ ...editing, age: +e.target.value })} /></div>
+                <div className="space-y-2"><Label>Date of Birth</Label><Input type="date" value={editing.dateOfBirth ? editing.dateOfBirth.slice(0, 10): ''} 
+                onChange={e => setEditing({ ...editing, dateOfBirth: e.target.value || null, })} /></div>
               </div>
               <div className="space-y-2"><Label>Location</Label><Input value={editing.location} onChange={e => setEditing({ ...editing, location: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Needs</Label><Input value={editing.needs} onChange={e => setEditing({ ...editing, needs: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Services Received</Label><Input value={editing.servicesReceived} onChange={e => setEditing({ ...editing, servicesReceived: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editing.phone} onChange={e => setEditing({ ...editing, phone: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Email</Label><Input value={editing.email} onChange={e => setEditing({ ...editing, email: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Linked Project</Label>
-                  <Select value={editing.linkedProjectId} onValueChange={v => setEditing({ ...editing, linkedProjectId: v })}>
+                <div className="space-y-2"><Label>Status</Label>
+                  <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as 'ACTIVE' | 'INACTIVE',})}>
                     <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                     <SelectContent>
-                      {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Date Enrolled</Label><Input type="date" value={editing.dateEnrolled} onChange={e => setEditing({ ...editing, dateEnrolled: e.target.value })} /></div>
+                
               </div>
               <Button onClick={handleSave} className="w-full">Save Beneficiary</Button>
             </div>

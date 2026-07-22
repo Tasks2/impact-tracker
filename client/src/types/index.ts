@@ -35,7 +35,7 @@ export interface Beneficiary {
   dateOfBirth: string | null;
   gender: Gender | null;
   location: string | null;
-  registrationDate: string;
+  //registrationDate: string;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
   updatedAt: string;

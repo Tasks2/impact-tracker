@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, ListChecks } from 'lucide-react';
+import { Plus, Pencil, Trash2} from 'lucide-react';
+import { DialogDescription } from '@radix-ui/react-dialog';
 
 const statusColors: Record<ProjectStatus, string> = {
   PLANNED: 'bg-muted text-muted-foreground',
@@ -56,16 +56,31 @@ export default function ProjectsPage() {
   updatedAt: new Date().toISOString(),
 };
 
-  const openNew = () => { setEditing({ ...emptyProject, id: crypto.randomUUID() }); setDialogOpen(true); };
-  const openEdit = (p: Project) => { setEditing({ ...p }); setDialogOpen(true); };
+  const openNew = () => { setEditing({ ...emptyProject }); setDialogOpen(true); };
+  const openEdit = (p: Project) => { 
+    setEditing({
+       ...p,
+       startDate: p.startDate
+      ? p.startDate.slice(0, 10)
+      : '',
+    endDate: p.endDate
+      ? p.endDate.slice(0, 10)
+      : null,
+      }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!editing) return;
-    editing.updatedAt = new Date().toISOString();
+  if (!editing) return;
+
+  try {
     await saveProject(editing);
+
     setDialogOpen(false);
-    setRefresh(r => r + 1);
-  };
+    setRefresh((r) => r + 1);
+  } catch (error) {
+    console.error('Failed to save project:', error);
+    alert('Save failed. Please try again.');
+  }
+};
 
   const handleDelete = async (id: string) => {
     await deleteProject(id);
@@ -155,7 +170,10 @@ export default function ProjectsPage() {
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="font-display">{editing?.createdAt === editing?.updatedAt ? 'New Project' : 'Edit Project'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display">{editing?.id ? 'Edit Project' : 'New Project'}</DialogTitle>
+            <DialogDescription>Create or update project details.</DialogDescription>
+          </DialogHeader>
           {editing && (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Name</Label><Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></div>
@@ -165,17 +183,20 @@ export default function ProjectsPage() {
                   <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as ProjectStatus })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Paused">Paused</SelectItem>
+                      <SelectItem value="PLANNED">Planned</SelectItem>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Start Date</Label><Input type="date" value={editing.startDate} onChange={e => setEditing({ ...editing, startDate: e.target.value })} /></div>
-                <div className="space-y-2"><Label>End Date</Label><Input type="date" value={editing.endDate} onChange={e => setEditing({ ...editing, endDate: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Start Date</Label><Input type="date" value={editing.startDate ? editing.startDate.slice(0, 10): ''} 
+                onChange={e => setEditing({ ...editing, startDate: e.target.value })} /></div>
+                <div className="space-y-2"><Label>End Date</Label><Input type="date" value={editing.endDate ? editing.endDate.slice(0, 10): ''} 
+                onChange={e => setEditing({ ...editing, endDate: e.target.value || null })} /></div>
               </div>
               
               <Button onClick={handleSave} className="w-full">Save Project</Button>

@@ -64,6 +64,7 @@ export async function updateBeneficiary(
       ...(data.firstName && { firstName: data.firstName }),
       ...(data.lastName && { lastName: data.lastName }),
       ...(data.phone && { phone: data.phone }),
+      ...(data.status && { status: data.status }),
       ...(data.email !== undefined && { email: data.email }),
       ...(data.location !== undefined && {
         location: data.location

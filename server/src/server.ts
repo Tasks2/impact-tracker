@@ -2,6 +2,7 @@ import app from './app';
 import express from 'express';
 import dotenv from 'dotenv';
 import routes from './routes/index.js';
+import cors from 'cors';
 import { errorHandler } from './middleware/error.middleware.js';
 
 dotenv.config();
@@ -10,6 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 //Middleware
+app.use(
+  cors({
+    origin: 'http://localhost:8080',
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(errorHandler);
 
