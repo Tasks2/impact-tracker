@@ -81,17 +81,7 @@ The application was developed as a full-stack project with a focus on REST APIs,
 * Docker
 * Docker Compose
 
-<!-- ## Project Structure
 
-```text
-impact-tracker/
-│
-├── client/          # React frontend
-├── server/          # Express backend and Prisma
-├── docs/            # Project documentation
-├── docker-compose.yml
-└── README.md
-``` -->
 
 ## Getting Started
 
@@ -165,13 +155,6 @@ npm run dev
 
 Make sure the required environment variables and PostgreSQL database are configured before starting the backend.
 
-## Documentation
-
-Additional documentation for the Docker setup is available in:
-
-```text
-docs/DOCKER.md
-```
 
 ## Project Purpose
 
@@ -186,9 +169,3 @@ Impact Tracker was built to explore the development of a real-world full-stack a
 * Frontend and backend integration
 * Docker containerization
 * Reporting and data export
-
-<!-- ## Status
-
-**Development / Portfolio Project**
-
-The core application functionality is implemented, with further improvements and UI polish planned as development continues. -->
