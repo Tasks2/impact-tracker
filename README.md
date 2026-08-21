@@ -10,44 +10,44 @@ The application was developed as a full-stack project with a focus on REST APIs,
 
 ## Features
 
-* 🔐 **Authentication & Role-Based Access**
+*  **Authentication & Role-Based Access**
 
   * Secure user login
   * Admin and Field Worker roles
   * Role-based access to application features
 
-* 📋 **Project Management**
+*  **Project Management**
 
   * Create, view, edit, and delete projects
   * Track project status and dates
   * Monitor project information
 
-* 👥 **Beneficiary Management**
+*  **Beneficiary Management**
 
   * Register and manage beneficiaries
   * Track personal information and status
   * Search beneficiaries by name or location
 
-* 🤝 **Volunteer Management**
+*  **Volunteer Management**
 
   * Register and manage volunteers
   * Track skills and availability
   * Record volunteer hours
 
-* 📊 **Impact Reports**
+*  **Impact Reports**
 
   * View project-level impact information
   * Summarize beneficiaries and volunteer contributions
   * Generate downloadable PDF reports
 
-* 🗄️ **Database & API**
+*  **Database & API**
 
   * PostgreSQL relational database
   * Prisma ORM
   * RESTful backend API
   * Zod validation
 
-* 🐳 **Docker Support**
+*  **Docker Support**
 
   * Containerized frontend
   * Containerized backend
